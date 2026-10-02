@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Equipo</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <h1 id="titulo">Registrar equipo</h1>
+  <form id="equipo">
+    <label>Nombre <input name="nombre" required></label>
+    <label>Concepto <input name="concepto" required></label>
+    <label>Cantidad <input name="cantidad" type="number" min="0" step="1" required></label>
+    <label>Descripción <textarea name="descripcion" rows="3"></textarea></label>
+    <button>Guardar</button>
+  </form>
+  <p id="resultado" role="status"></p>
+  <p><a href="/panel">Volver al panel</a></p>
+
+  <script>
+    // Misma vista para crear (/equipos/registro) y actualizar (/equipos/:id/editar).
+    const form = document.getElementById('equipo');
+    const resultado = document.getElementById('resultado');
+    const id = location.pathname.match(/^\/equipos\/(\d+)\/editar$/)?.[1];
+
+    if (id) {
+      document.getElementById('titulo').textContent = 'Actualizar equipo';
+      fetch(`/equipos/${id}`).then(async (respuesta) => {
+        const equipo = await respuesta.json();
+        if (!respuesta.ok) return (resultado.textContent = equipo.errores.join('. '));
+        for (const campo of ['nombre', 'concepto', 'cantidad', 'descripcion']) {
+          form[campo].value = equipo[campo] ?? '';
+        }
+      });
+    }
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const datos = Object.fromEntries(new FormData(form));
+      datos.cantidad = Number(datos.cantidad);
+      const respuesta = await fetch(id ? `/equipos/${id}` : '/equipos', {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos),
+      });
+      if (respuesta.ok) return (location.href = `/panel?aviso=${id ? 'actualizado' : 'creado'}`);
+      resultado.textContent = (await respuesta.json()).errores.join('. ');
+    });
+  </script>
+</body>
+</html>

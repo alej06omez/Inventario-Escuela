@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro de usuario</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <h1>Registro de usuario</h1>
+  <form id="registro">
+    <label>Nombre <input name="nombre" required></label>
+    <label>Institución <input name="institucion" required></label>
+    <label>Correo <input name="correo" type="email" required></label>
+    <label>Contraseña <input name="contrasena" type="password" minlength="8" required></label>
+    <label>Teléfono <input name="telefono" type="tel" pattern="\+?\d{7,15}" required></label>
+    <label>Rol
+      <select name="rol">
+        <option value="profesor">Profesor</option>
+        <option value="administrador">Administrador</option>
+      </select>
+    </label>
+
+    <fieldset id="profesor">
+      <legend>Profesor</legend>
+      <label>Sede <input name="sede" required></label>
+      <label>Jornada <input name="jornada" required></label>
+      <label>Materias (separadas por coma) <input name="materias" required></label>
+    </fieldset>
+
+    <fieldset id="administrador" hidden disabled>
+      <legend>Administrador</legend>
+      <label>Código <input name="codigo" required></label>
+      <label>Área <input name="area" required></label>
+      <label>Departamento <input name="departamento" required></label>
+    </fieldset>
+
+    <button>Registrar</button>
+  </form>
+  <p id="resultado" role="status"></p>
+  <p><a href="/usuarios/login">Iniciar sesión</a></p>
+
+  <script>
+    const form = document.getElementById('registro');
+    const resultado = document.getElementById('resultado');
+
+    // Los campos de un fieldset deshabilitado no entran en FormData.
+    form.rol.addEventListener('change', () => {
+      for (const rol of ['profesor', 'administrador']) {
+        const grupo = document.getElementById(rol);
+        grupo.hidden = grupo.disabled = form.rol.value !== rol;
+      }
+    });
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const datos = Object.fromEntries(new FormData(form));
+      if (datos.materias !== undefined) {
+        datos.materias = datos.materias.split(',').map((m) => m.trim()).filter(Boolean);
+      }
+      // La cookie de sesión viaja sola; así un administrador puede crear a otro.
+      const respuesta = await fetch('/usuarios/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos),
+      });
+      const cuerpo = await respuesta.json();
+      resultado.textContent = respuesta.ok
+        ? `Usuario ${cuerpo.nombre} registrado.`
+        : cuerpo.errores.join('. ');
+      if (respuesta.ok) form.reset();
+    });
+  </script>
+</body>
+</html>

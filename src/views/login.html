@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <h1>Iniciar sesión</h1>
+  <form id="login">
+    <label>Correo <input name="correo" type="email" autocomplete="username" required></label>
+    <label>Contraseña <input name="contrasena" type="password" autocomplete="current-password" required></label>
+    <button>Entrar</button>
+  </form>
+  <p id="resultado" role="status"></p>
+  <p><a href="/usuarios/registro">Registrarse</a></p>
+
+  <script>
+    const form = document.getElementById('login');
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const respuesta = await fetch('/usuarios/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      });
+      if (respuesta.ok) return (location.href = '/panel');
+      document.getElementById('resultado').textContent = (await respuesta.json()).errores.join('. ');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+body { font-family: system-ui, sans-serif; max-width: 26rem; margin: 2rem auto; padding: 0 1rem; }
+body.ancho { max-width: 50rem; }
+label { display: block; margin-top: .75rem; }
+input, select, textarea, button { width: 100%; padding: .5rem; box-sizing: border-box; font: inherit; }
+button { margin-top: 1rem; }
+fieldset { margin-top: 1rem; }
+nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+nav button, td button { width: auto; margin: 0; }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #ccc; }

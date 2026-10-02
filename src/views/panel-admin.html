@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de administrador</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body class="ancho" data-rol="administrador">
+  <h1>Panel de administrador</h1>
+  <nav>
+    <a href="/equipos/registro">Registrar equipo</a>
+    <a href="/usuarios/registro">Registrar usuario</a>
+    <a href="/prestamos/registro">Añadir préstamo</a>
+    <button id="salir">Cerrar sesión</button>
+  </nav>
+  <p id="aviso" role="status"></p>
+  <table id="equipos">
+    <thead>
+      <tr><th>Nombre</th><th>Concepto</th><th>Cantidad</th><th>Descripción</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h2>Préstamos activos</h2>
+  <table id="prestamos">
+    <thead>
+      <tr><th>Equipo</th><th>Usuario</th><th>Fecha inicio</th><th>Hora inicio</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script src="/panel.js"></script>
+</body>
+</html>

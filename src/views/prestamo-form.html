@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Préstamo</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <h1>Añadir préstamo</h1>
+  <form id="prestamo">
+    <label>Equipo
+      <select name="equipoId" required>
+        <option value="">Selecciona un equipo</option>
+      </select>
+    </label>
+    <button>Solicitar</button>
+  </form>
+  <p id="resultado" role="status"></p>
+  <p><a href="/panel">Volver al panel</a></p>
+
+  <script>
+    // La fecha y la hora de inicio no se piden: las pone el servidor.
+    const form = document.getElementById('prestamo');
+    const resultado = document.getElementById('resultado');
+
+    fetch('/equipos').then(async (respuesta) => {
+      const equipos = await respuesta.json();
+      if (!respuesta.ok) return (resultado.textContent = equipos.errores.join('. '));
+      for (const equipo of equipos) form.equipoId.add(new Option(equipo.nombre, equipo.id));
+    });
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const respuesta = await fetch('/prestamos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ equipoId: Number(form.equipoId.value) }),
+      });
+      if (respuesta.ok) return (location.href = '/panel?aviso=prestado');
+      resultado.textContent = (await respuesta.json()).errores.join('. ');
+    });
+  </script>
+</body>
+</html>
