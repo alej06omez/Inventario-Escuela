@@ -63,4 +63,10 @@ function validarLogin(req, res, next) {
   next();
 }
 
-module.exports = { validarRegistro, validarLogin };
+// Las multas son de los profesores: otro rol no tiene nada que consultar.
+function validarConsultaMultas(req, res, next) {
+  if (req.usuario.rol !== 'profesor') return res.status(403).json({ errores: ['Solo un profesor tiene multas'] });
+  next();
+}
+
+module.exports = { validarRegistro, validarLogin, validarConsultaMultas };

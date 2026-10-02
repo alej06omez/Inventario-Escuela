@@ -8,8 +8,8 @@ try {
 }
 
 const express = require('express');
-const { autenticar, requiereSesion, paginaConSesion, soloAdministrador, permisoRegistro } = require('./middleware/auth');
-const { validarRegistro, validarLogin } = require('./validators/usuarioValidator');
+const { autenticar, requiereSesion, paginaConSesion, soloAdministrador, permisoRegistro, destinatarioPrestamo } = require('./middleware/auth');
+const { validarRegistro, validarLogin, validarConsultaMultas } = require('./validators/usuarioValidator');
 const { validarId, validarEquipo } = require('./validators/equipoValidator');
 const usuarioController = require('./controllers/usuarioController');
 const { validarPrestamo } = require('./validators/prestamoValidator');
@@ -40,7 +40,10 @@ app.delete('/equipos/:id', requiereSesion, soloAdministrador, validarId, equipoC
 
 app.get('/prestamos/registro', paginaConSesion, prestamoController.formularioRegistro);
 app.get('/prestamos', requiereSesion, prestamoController.listar);
-app.post('/prestamos', requiereSesion, validarPrestamo, prestamoController.anadir);
+app.get('/prestamos/profesor', paginaConSesion, soloAdministrador, prestamoController.formularioProfesor);
+app.post('/prestamos', requiereSesion, validarPrestamo, destinatarioPrestamo, prestamoController.anadir);
+app.get('/usuarios/profesores', requiereSesion, soloAdministrador, usuarioController.listarProfesores);
+app.get('/multas/valor', requiereSesion, validarConsultaMultas, usuarioController.verificarValorMultas);
 app.post('/prestamos/:id/concluir', requiereSesion, validarId, prestamoController.concluir);
 
 app.use((error, req, res, next) => {

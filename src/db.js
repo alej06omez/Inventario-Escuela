@@ -37,7 +37,10 @@ db.exec(`
     hora_inicio  TEXT NOT NULL,
     fecha_fin    TEXT,
     hora_fin     TEXT,
-    equipo_id    INTEGER NOT NULL REFERENCES equipos(id)
+    equipo_id    INTEGER NOT NULL REFERENCES equipos(id),
+    dias_prestamo  INTEGER,
+    fecha_esperada TEXT,
+    dias_retraso   INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS prestamo_usuarios (
@@ -64,6 +67,24 @@ if (columnas.includes('fecha')) {
     `);
   }
 }
+// Los préstamos anteriores quedan sin fecha esperada: nunca generan multa.
+if (!columnas.includes('dias_prestamo')) {
+  db.exec(`
+    ALTER TABLE prestamos ADD COLUMN dias_prestamo INTEGER;
+    ALTER TABLE prestamos ADD COLUMN fecha_esperada TEXT;
+    ALTER TABLE prestamos ADD COLUMN dias_retraso INTEGER NOT NULL DEFAULT 0;
+  `);
+}
+
+// Después de las migraciones: la multa referencia a prestamos.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS multas (
+    id          INTEGER PRIMARY KEY,
+    fecha       TEXT NOT NULL,
+    estado      TEXT NOT NULL DEFAULT 'no pago' CHECK (estado IN ('pagado', 'no pago')),
+    prestamo_id INTEGER NOT NULL REFERENCES prestamos(id) ON DELETE CASCADE
+  );
+`);
 
 // Ejecuta la función en una transacción: o se guarda todo o nada.
 db.transaccion = (funcion) => {

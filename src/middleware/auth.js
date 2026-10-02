@@ -41,4 +41,12 @@ function permisoRegistro(req, res, next) {
   soloAdministrador(req, res, next);
 }
 
-module.exports = { autenticar, requiereSesion, paginaConSesion, soloAdministrador, permisoRegistro };
+// A nombre de quién queda el préstamo: el profesor pide para sí mismo; el
+// administrador para el profesor que elija. Si aún no lo eligió, usuarioId
+// queda sin definir y el controlador le manda el formulario para elegirlo.
+function destinatarioPrestamo(req, res, next) {
+  req.datos.usuarioId = req.usuario.rol === 'administrador' ? req.datos.profesorId : req.usuario.id;
+  next();
+}
+
+module.exports = { autenticar, requiereSesion, paginaConSesion, soloAdministrador, permisoRegistro, destinatarioPrestamo };

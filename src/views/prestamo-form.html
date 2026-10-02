@@ -14,6 +14,9 @@
         <option value="">Selecciona un equipo</option>
       </select>
     </label>
+    <label>Días de préstamo
+      <input name="diasPrestamo" type="number" min="1" max="365" value="1" required>
+    </label>
     <button>Solicitar</button>
   </form>
   <p id="resultado" role="status"></p>
@@ -35,8 +38,10 @@
       const respuesta = await fetch('/prestamos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ equipoId: Number(form.equipoId.value) }),
+        body: JSON.stringify({ equipoId: Number(form.equipoId.value), diasPrestamo: Number(form.diasPrestamo.value) }),
       });
+      // Al administrador le falta elegir el profesor: el servidor indica dónde.
+      if (respuesta.status === 202) return (location.href = (await respuesta.json()).formulario);
       if (respuesta.ok) return (location.href = '/panel?aviso=prestado');
       resultado.textContent = (await respuesta.json()).errores.join('. ');
     });

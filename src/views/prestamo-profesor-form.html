@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Préstamo</title>
+  <link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+  <h1>¿A qué profesor se le presta?</h1>
+  <form id="prestamo">
+    <label>Profesor
+      <select name="profesorId" required>
+        <option value="">Selecciona un profesor</option>
+      </select>
+    </label>
+    <button>Solicitar</button>
+  </form>
+  <p id="resultado" role="status"></p>
+  <p><a href="/prestamos/registro">Volver</a></p>
+
+  <script>
+    // El equipo y los días vienen del formulario anterior, en la URL.
+    const form = document.getElementById('prestamo');
+    const resultado = document.getElementById('resultado');
+    const parametros = new URLSearchParams(location.search);
+
+    fetch('/usuarios/profesores').then(async (respuesta) => {
+      const profesores = await respuesta.json();
+      if (!respuesta.ok) return (resultado.textContent = profesores.errores.join('. '));
+      for (const profesor of profesores) form.profesorId.add(new Option(profesor.nombre, profesor.id));
+    });
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const respuesta = await fetch('/prestamos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          equipoId: Number(parametros.get('equipoId')),
+          diasPrestamo: Number(parametros.get('diasPrestamo')),
+          profesorId: Number(form.profesorId.value),
+        }),
+      });
+      if (respuesta.ok) return (location.href = '/panel?aviso=prestado');
+      resultado.textContent = (await respuesta.json()).errores.join('. ');
+    });
+  </script>
+</body>
+</html>

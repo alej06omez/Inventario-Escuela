@@ -32,6 +32,14 @@ class Profesor extends Usuario {
     this.sede = datos.sede;
     this.jornada = datos.jornada;
     this.materias = datos.materias || [];
+    this.susMultas = datos.susMultas || [];
+  }
+
+  // Suma solo las multas sin pagar.
+  calcularMultasValor() {
+    return this.susMultas
+      .filter((multa) => multa.estado === 'no pago')
+      .reduce((total, multa) => total + multa.valorMulta(), 0);
   }
 }
 

@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const usuarioRepository = require('../repositories/usuarioRepository');
+const multaRepository = require('../repositories/multaRepository');
 const { Administrador, Profesor } = require('../models/Usuario');
 const error = require('../errorHttp');
 
@@ -59,8 +60,18 @@ function login({ correo, contrasena }) {
 // Decide qué panel le corresponde a cada tipo de usuario.
 const vistaPanel = (usuario) => (usuario.rol === 'administrador' ? 'panel-admin.html' : 'panel-profesor.html');
 
+// Valor total que el profesor debe por sus multas sin pagar.
+function verificarValorMultas(usuarioId) {
+  const profesor = usuarioRepository.buscarPorId(usuarioId);
+  if (profesor?.rol !== 'profesor') throw error(404, 'El profesor no existe');
+  profesor.susMultas = multaRepository.noPagasPorUsuario(usuarioId);
+  return profesor.calcularMultasValor();
+}
+
 module.exports = {
   DURACION_TOKEN_MS,
+  verificarValorMultas,
+  listarProfesores: usuarioRepository.listarProfesores,
   registrarUsuario,
   login,
   verificarToken,

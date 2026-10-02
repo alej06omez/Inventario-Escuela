@@ -1,6 +1,7 @@
 const prestamoRepository = require('../repositories/prestamoRepository');
 const usuarioRepository = require('../repositories/usuarioRepository');
 const equipoService = require('./equipoService');
+const Prestamo = require('../models/Prestamo');
 const error = require('../errorHttp');
 
 // Fecha y hora locales del servidor: { fecha: 'AAAA-MM-DD', hora: 'HH:MM:SS' }.
@@ -11,13 +12,16 @@ function ahora() {
 }
 
 // Cada préstamo activo ocupa una unidad del equipo.
-function anadirPrestamoPorIdUsuario(equipoId, usuarioId) {
-  if (!usuarioRepository.buscarPorId(usuarioId)) throw error(404, 'El usuario no existe');
+function anadirPrestamoPorIdUsuario(equipoId, usuarioId, diasPrestamo) {
+  if (usuarioRepository.buscarPorId(usuarioId)?.rol !== 'profesor') throw error(404, 'El profesor no existe');
   const equipo = equipoService.equipoPorId(equipoId);
   if (prestamoRepository.contarActivosPorEquipo(equipoId) >= equipo.cantidad) {
     throw error(409, 'No hay unidades disponibles de este equipo');
   }
-  return prestamoRepository.crear(equipoId, usuarioId, ahora());
+  const inicio = ahora();
+  return prestamoRepository.crear(
+    equipoId, usuarioId, inicio, diasPrestamo, Prestamo.fechaEsperadaDesde(inicio.fecha, diasPrestamo)
+  );
 }
 
 // El administrador ve todos los préstamos activos; el profesor, solo los suyos.
@@ -32,7 +36,9 @@ function concluirPrestamo(id, usuario) {
     throw error(403, 'El préstamo es de otro usuario');
   }
   if (prestamo.fechaFin) throw error(409, 'El préstamo ya fue concluido');
-  return prestamoRepository.concluir(id, ahora());
+  // Devolver después de la fecha esperada genera una multa.
+  const fin = ahora();
+  return prestamoRepository.concluir(id, fin, prestamo.calcularDiasRetraso(fin.fecha));
 }
 
 module.exports = { anadirPrestamoPorIdUsuario, listarPrestamos, concluirPrestamo };

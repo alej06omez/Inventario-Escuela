@@ -37,4 +37,12 @@ function panel(req, res) {
   res.sendFile(vista(usuarioService.vistaPanel(req.usuario)));
 }
 
-module.exports = { formularioRegistro, registrar, formularioLogin, login, logout, panel };
+function listarProfesores(req, res) {
+  res.json(usuarioService.listarProfesores().map(({ id, nombre }) => ({ id, nombre })));
+}
+
+function verificarValorMultas(req, res) {
+  res.json({ valor: usuarioService.verificarValorMultas(req.usuario.id) });
+}
+
+module.exports = { formularioRegistro, registrar, formularioLogin, login, logout, panel, listarProfesores, verificarValorMultas };

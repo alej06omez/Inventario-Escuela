@@ -48,4 +48,8 @@ function existeAdministrador() {
   return Boolean(db.prepare("SELECT 1 FROM usuarios WHERE rol = 'administrador' LIMIT 1").get());
 }
 
-module.exports = { crear, buscarPorCorreo, buscarPorId, existeAdministrador };
+function listarProfesores() {
+  return db.prepare("SELECT * FROM usuarios WHERE rol = 'profesor' ORDER BY nombre").all().map(desdeFila);
+}
+
+module.exports = { crear, buscarPorCorreo, buscarPorId, existeAdministrador, listarProfesores };

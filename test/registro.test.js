@@ -147,15 +147,27 @@ test('préstamos y eliminación de equipo', async () => {
 
   // Añadir préstamo: valida datos, equipo y unidades disponibles.
   assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: 'x' })).estado, 400);
-  assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: 999 })).estado, 404);
-  const prestamo = await pedir('POST', '/prestamos', tokenProfesor, { equipoId: equipo.id });
+  assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: 999, diasPrestamo: 2 })).estado, 404);
+  assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: equipo.id })).estado, 400);
+  const prestamo = await pedir('POST', '/prestamos', tokenProfesor, { equipoId: equipo.id, diasPrestamo: 2 });
   assert.equal(prestamo.estado, 201);
   assert.equal(prestamo.cuerpo.suEquipo.id, equipo.id);
   assert.equal(prestamo.cuerpo.suUsuario[0].nombre, profesor.nombre);
   assert.match(prestamo.cuerpo.fechaInicio, /^\d{4}-\d{2}-\d{2}$/);
   assert.match(prestamo.cuerpo.horaInicio, /^\d{2}:\d{2}:\d{2}$/);
   assert.equal(prestamo.cuerpo.fechaFin, null);
-  assert.equal((await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id })).estado, 409);
+  assert.equal(prestamo.cuerpo.diasPrestamo, 2);
+  assert.equal(Date.parse(prestamo.cuerpo.fechaEsperada) - Date.parse(prestamo.cuerpo.fechaInicio), 2 * 24 * 60 * 60 * 1000);
+
+  // El administrador debe elegir profesor: sin él recibe el formulario para elegirlo.
+  const sinProfesor = await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 2 });
+  assert.equal(sinProfesor.estado, 202);
+  assert.equal(sinProfesor.cuerpo.formulario, `/prestamos/profesor?equipoId=${equipo.id}&diasPrestamo=2`);
+  const profesores = (await pedir('GET', '/usuarios/profesores', tokenAdmin)).cuerpo;
+  assert.equal((await pedir('GET', '/usuarios/profesores', tokenProfesor)).estado, 403);
+  const profesorId = profesores.find((uno) => uno.nombre === profesor.nombre).id;
+  assert.equal((await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 2, profesorId: 999 })).estado, 404);
+  assert.equal((await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 2, profesorId })).estado, 409);
 
   // Listado: el profesor ve los suyos; el administrador, todos.
   assert.equal((await pedir('GET', '/prestamos', tokenProfesor)).cuerpo.length, 1);
@@ -176,6 +188,18 @@ test('préstamos y eliminación de equipo', async () => {
   assert.match(concluido.cuerpo.horaFin, /^\d{2}:\d{2}:\d{2}$/);
   assert.equal((await pedir('POST', `/prestamos/${prestamo.cuerpo.id}/concluir`, tokenProfesor)).estado, 409);
   assert.equal((await pedir('GET', '/prestamos', tokenAdmin)).cuerpo.length, 0);
+  assert.equal(concluido.cuerpo.diasRetraso, 0);
+
+  // Multas: devolver tarde cobra 1000 por día de retraso; solo el profesor las consulta.
+  assert.deepEqual((await pedir('GET', '/multas/valor', tokenProfesor)).cuerpo, { valor: 0 });
+  assert.equal((await pedir('GET', '/multas/valor', tokenAdmin)).estado, 403);
+  const tardio = await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 1, profesorId });
+  assert.equal(tardio.estado, 201);
+  assert.equal(tardio.cuerpo.suUsuario[0].id, profesorId);
+  require('../src/db').prepare("UPDATE prestamos SET fecha_esperada = date(fecha_esperada, '-4 days') WHERE id = ?").run(tardio.cuerpo.id);
+  assert.equal((await pedir('POST', `/prestamos/${tardio.cuerpo.id}/concluir`, tokenProfesor)).cuerpo.diasRetraso, 3);
+  assert.deepEqual((await pedir('GET', '/multas/valor', tokenProfesor)).cuerpo, { valor: 3000 });
+  assert.deepEqual((await pedir('GET', '/multas/valor', tokenAjeno)).cuerpo, { valor: 0 });
 
   assert.equal((await pedir('DELETE', `/equipos/${equipo.id}`, tokenAdmin)).estado, 204);
   assert.equal((await pedir('GET', `/equipos/${equipo.id}`, tokenAdmin)).estado, 404);

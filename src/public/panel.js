@@ -42,6 +42,14 @@ fetch('/equipos').then(async (respuesta) => {
   }
 });
 
+// Solo el panel de profesor tiene el elemento de multas.
+const multas = document.getElementById('multas');
+if (multas) {
+  fetch('/multas/valor').then(async (respuesta) => {
+    if (respuesta.ok) multas.textContent = `Valor a pagar en multas: $${(await respuesta.json()).valor}`;
+  });
+}
+
 fetch('/prestamos').then(async (respuesta) => {
   if (!respuesta.ok) return;
   const cuerpo = document.querySelector('#prestamos tbody');
@@ -51,6 +59,7 @@ fetch('/prestamos').then(async (respuesta) => {
     fila.insertCell().textContent = prestamo.suUsuario.map((usuario) => usuario.nombre).join(', ');
     fila.insertCell().textContent = prestamo.fechaInicio;
     fila.insertCell().textContent = prestamo.horaInicio;
+    fila.insertCell().textContent = prestamo.fechaEsperada ?? '';
     fila.insertCell().append(boton('Concluir', () => accion(`/prestamos/${prestamo.id}/concluir`, 'POST')));
   }
 });
