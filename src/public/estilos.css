@@ -1,10 +1,152 @@
-body { font-family: system-ui, sans-serif; max-width: 26rem; margin: 2rem auto; padding: 0 1rem; }
-body.ancho { max-width: 50rem; }
-label { display: block; margin-top: .75rem; }
-input, select, textarea, button { width: 100%; padding: .5rem; box-sizing: border-box; font: inherit; }
-button { margin-top: 1rem; }
-fieldset { margin-top: 1rem; }
-nav { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-nav button, td button { width: auto; margin: 0; }
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #ccc; }
+/* Colores por rol; el modo oscuro solo redefine estas variables. */
+:root {
+  color-scheme: light dark;
+  --fondo: #f2f2f7;
+  --superficie: #ffffff;
+  --texto: #1c1c1e;
+  --texto-suave: #5b5b62;
+  --borde: #d1d1d6;
+  --acento: #0a5fd8;
+  --sobre-acento: #ffffff;
+  --acento-suave: #e3edfb;
+  --radio: 1rem;
+  --radio-control: .75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #111113;
+    --superficie: #1c1c1e;
+    --texto: #f2f2f7;
+    --texto-suave: #a9a9b2;
+    --borde: #3a3a3f;
+    --acento: #6aa8ff;
+    --sobre-acento: #0b1220;
+    --acento-suave: #1d2a3f;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--texto);
+  background: var(--fondo);
+  max-width: 28rem;
+  margin: 0 auto;
+  /* max(): respeta el borde seguro en móviles con muesca. */
+  padding: 2rem max(1rem, env(safe-area-inset-right)) 3rem max(1rem, env(safe-area-inset-left));
+}
+body.ancho { max-width: 64rem; }
+
+h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 1.25rem; }
+h2 { font-size: 1.25rem; margin: 2rem 0 0; }
+
+a { color: var(--acento); text-underline-offset: .2em; }
+
+/* Formularios */
+form {
+  background: var(--superficie);
+  border-radius: var(--radio);
+  padding: 1.25rem;
+}
+label { display: block; margin-top: 1rem; font-size: .9375rem; font-weight: 600; }
+label:first-child { margin-top: 0; }
+
+input, select, textarea, button { font: inherit; color: inherit; }
+input, select, textarea {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: .375rem;
+  padding: .625rem .75rem;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+}
+textarea { resize: vertical; }
+
+fieldset {
+  margin: 1.25rem 0 0;
+  padding: 1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-control);
+}
+legend { padding: 0 .5rem; font-weight: 600; color: var(--texto-suave); }
+
+button {
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 1.25rem;
+  padding: .625rem 1.25rem;
+  font-weight: 600;
+  color: var(--sobre-acento);
+  background: var(--acento);
+  border: 0;
+  border-radius: var(--radio-control);
+  cursor: pointer;
+}
+button:hover { opacity: .88; }
+button:active { opacity: .75; }
+
+:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+/* Mensajes de estado: ocultos mientras estén vacíos. */
+[role="status"], #multas {
+  margin: 1rem 0;
+  padding: .75rem 1rem;
+  background: var(--acento-suave);
+  border-radius: var(--radio-control);
+}
+[role="status"]:empty, #multas:empty { display: none; }
+#multas { font-weight: 600; }
+
+/* Navegación del panel */
+nav { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+nav a, nav button, td button {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: .5rem 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-radius: 999px;
+}
+nav a:hover { opacity: .88; }
+nav button {
+  margin-left: auto;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+}
+
+/* Tablas */
+table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--superficie);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+th, td { text-align: left; padding: .75rem 1rem; border-bottom: 1px solid var(--borde); }
+th { font-size: .8125rem; font-weight: 600; color: var(--texto-suave); }
+tr:last-child td { border-bottom: 0; }
+td:last-child { white-space: nowrap; }
+td button { min-height: 2.25rem; padding: .25rem .875rem; margin-left: .25rem; }
+
+/* Pantallas angostas: la tabla se desplaza de lado en vez de desbordar la página. */
+@media (max-width: 40rem) {
+  body { padding-top: 1.25rem; }
+  h1 { font-size: 1.5rem; }
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  nav button { margin-left: 0; }
+  /* Un dedo necesita más área que un puntero. */
+  td button { min-height: 2.75rem; }
+}
