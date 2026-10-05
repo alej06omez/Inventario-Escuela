@@ -19,7 +19,19 @@ function autenticar(req, res, next) {
 function requiereSesion(req, res, next) {
   if (!req.usuario) return res.status(401).json({ errores: ['Debes iniciar sesión'] });
   next();
+  const payload = verificarToken(token); // valida firma + exp, como ya tenías
+  if (!payload) return res.status(401).json({ error: 'Token inválido o expirado' });
+
+  const sessionIdActiva = redis.get(`sesion_activa:${payload.id}`);
+
+  if (!sessionIdActiva || sessionIdActiva !== payload.sessionId) {
+    return res.status(401).json({ error: 'Sesión cerrada en otro dispositivo' });
+  }
+
+  req.usuario = payload;
+  next();
 }
+
 
 // Para rutas que devuelven una página: sin sesión se manda al login.
 function paginaConSesion(req, res, next) {

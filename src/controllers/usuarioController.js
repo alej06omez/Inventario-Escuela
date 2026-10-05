@@ -1,5 +1,6 @@
 const path = require('node:path');
 const usuarioService = require('../services/usuarioService');
+const { randomUUID } = require('crypto');
 
 const vista = (archivo) => path.join(__dirname, '..', 'views', archivo);
 
@@ -18,15 +19,17 @@ function formularioLogin(req, res) {
 
 function login(req, res) {
   const sesion = usuarioService.login(req.datos);
+  const sesionId = randomUUID();
   // httpOnly: el JavaScript de la página no puede leer el token.
   // sameSite strict: otros sitios no pueden enviar peticiones con esta sesión.
-  res.cookie('token', sesion.token, {
+  const token = usuarioService.crearToken(sesion, sesionId);
+  res.cookie('token', token, {
     httpOnly: true,
     sameSite: 'strict',
     secure: process.env.NODE_ENV === 'production',
     maxAge: usuarioService.DURACION_TOKEN_MS,
   });
-  res.json(sesion);
+  res.json({id: sesion.id, rol: sesion.rol});
 }
 
 function logout(req, res) {

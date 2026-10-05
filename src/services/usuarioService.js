@@ -23,9 +23,9 @@ function contrasenaCorrecta(contrasena, guardada) {
 
 const firmar = (cuerpo) => crypto.createHmac('sha256', SECRETO).update(cuerpo).digest('base64url');
 
-function crearToken(usuario) {
+function crearToken(usuario, sesionId) {
   const cuerpo = Buffer.from(
-    JSON.stringify({ id: usuario.id, rol: usuario.rol, exp: Date.now() + DURACION_TOKEN_JWT })
+    JSON.stringify({ id: usuario.id, rol: usuario.rol, sesionId, exp: Date.now() + DURACION_TOKEN_JWT })
   ).toString('base64url');
   return `${cuerpo}.${firmar(cuerpo)}`;
 }
@@ -75,6 +75,7 @@ module.exports = {
   listarProfesores: usuarioRepository.listarProfesores,
   registrarUsuario,
   login,
+  crearToken,
   verificarToken,
   vistaPanel,
   existeAdministrador: usuarioRepository.existeAdministrador,
