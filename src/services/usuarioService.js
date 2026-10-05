@@ -25,7 +25,7 @@ const firmar = (cuerpo) => crypto.createHmac('sha256', SECRETO).update(cuerpo).d
 
 function crearToken(usuario) {
   const cuerpo = Buffer.from(
-    JSON.stringify({ id: usuario.id, rol: usuario.rol, exp: Date.now() + DURACION_TOKEN_JWT })
+    JSON.stringify({ id: usuario.id, rol: usuario.rol, exp: DURACION_TOKEN_JWT })
   ).toString('base64url');
   return `${cuerpo}.${firmar(cuerpo)}`;
 }
