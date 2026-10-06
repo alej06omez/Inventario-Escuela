@@ -15,25 +15,25 @@ function listarEquipos() {
   return equipoRepository.listar();
 }
 
-function equipoPorId(id) {
-  const equipo = equipoRepository.buscarPorId(id);
+async function equipoPorId(id) {
+  const equipo = await equipoRepository.buscarPorId(id);
   if (!equipo) throw error(404, 'El equipo no existe');
   return equipo;
 }
 
-function actualizarEquipo(id, datos, usuario) {
+async function actualizarEquipo(id, datos, usuario) {
   exigirAdministrador(usuario);
-  equipoPorId(id);
+  await equipoPorId(id);
   return equipoRepository.actualizar(id, datos);
 }
 
-function eliminarEquipo(id, usuario) {
+async function eliminarEquipo(id, usuario) {
   exigirAdministrador(usuario);
-  equipoPorId(id);
-  if (prestamoRepository.contarActivosPorEquipo(id) > 0) {
+  await equipoPorId(id);
+  if (await prestamoRepository.contarActivosPorEquipo(id) > 0) {
     throw error(409, 'El equipo tiene préstamos activos y no puede eliminarse');
   }
-  equipoRepository.eliminar(id);
+  await equipoRepository.eliminar(id);
 }
 
 module.exports = { registrarEquipo, listarEquipos, equipoPorId, actualizarEquipo, eliminarEquipo };

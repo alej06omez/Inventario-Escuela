@@ -8,6 +8,7 @@ try {
 }
 
 const express = require('express');
+const { conectar } = require('./database');
 const { autenticar, requiereSesion, paginaConSesion, soloAdministrador, permisoRegistro, destinatarioPrestamo } = require('./middleware/auth');
 const { validarRegistro, validarLogin, validarConsultaMultas } = require('./validators/usuarioValidator');
 const { validarId, validarEquipo } = require('./validators/equipoValidator');
@@ -55,7 +56,13 @@ app.use((error, req, res, next) => {
 
 if (require.main === module) {
   const puerto = process.env.PORT || 2888;
-  app.listen(puerto, () => console.log(`Servidor en http://localhost:${puerto}`));
+  // El servidor solo acepta peticiones con la base de datos ya conectada.
+  conectar()
+    .then(() => app.listen(puerto, () => console.log(`Servidor en http://localhost:${puerto}`)))
+    .catch((error) => {
+      console.error('No se pudo conectar a MongoDB:', error.message);
+      process.exit(1);
+    });
 }
 
 module.exports = app;

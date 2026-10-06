@@ -12,10 +12,10 @@ function ahora() {
 }
 
 // Cada préstamo activo ocupa una unidad del equipo.
-function anadirPrestamoPorIdUsuario(equipoId, usuarioId, diasPrestamo) {
-  if (usuarioRepository.buscarPorId(usuarioId)?.rol !== 'profesor') throw error(404, 'El profesor no existe');
-  const equipo = equipoService.equipoPorId(equipoId);
-  if (prestamoRepository.contarActivosPorEquipo(equipoId) >= equipo.cantidad) {
+async function anadirPrestamoPorIdUsuario(equipoId, usuarioId, diasPrestamo) {
+  if ((await usuarioRepository.buscarPorId(usuarioId))?.rol !== 'profesor') throw error(404, 'El profesor no existe');
+  const equipo = await equipoService.equipoPorId(equipoId);
+  if (await prestamoRepository.contarActivosPorEquipo(equipoId) >= equipo.cantidad) {
     throw error(409, 'No hay unidades disponibles de este equipo');
   }
   const inicio = ahora();
@@ -29,8 +29,8 @@ function listarPrestamos(usuario) {
   return prestamoRepository.activos(usuario.rol === 'administrador' ? undefined : usuario.id);
 }
 
-function concluirPrestamo(id, usuario) {
-  const prestamo = prestamoRepository.buscarPorId(id);
+async function concluirPrestamo(id, usuario) {
+  const prestamo = await prestamoRepository.buscarPorId(id);
   if (!prestamo) throw error(404, 'El préstamo no existe');
   if (usuario.rol !== 'administrador' && !prestamo.suUsuario.some((suyo) => suyo.id === usuario.id)) {
     throw error(403, 'El préstamo es de otro usuario');

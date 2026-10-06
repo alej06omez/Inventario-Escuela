@@ -1,36 +1,32 @@
-const db = require('../db');
 const Equipo = require('../models/Equipo');
-
-const desdeFila = (fila) => (fila ? new Equipo(fila) : null);
+const Prestamo = require('../models/Prestamo');
+const Multa = require('../models/Multa');
 
 function crear(datos) {
-  const { lastInsertRowid } = db
-    .prepare('INSERT INTO equipos (nombre, concepto, cantidad, descripcion) VALUES (?, ?, ?, ?)')
-    .run(datos.nombre, datos.concepto, datos.cantidad, datos.descripcion);
-  return buscarPorId(Number(lastInsertRowid));
+  return Equipo.create(datos);
 }
 
 function listar() {
-  return db.prepare('SELECT * FROM equipos ORDER BY nombre').all().map(desdeFila);
+  return Equipo.find().sort({ nombre: 1 });
 }
 
 function buscarPorId(id) {
-  return desdeFila(db.prepare('SELECT * FROM equipos WHERE id = ?').get(id));
+  return Equipo.findById(id);
 }
 
 function actualizar(id, datos) {
-  db.prepare('UPDATE equipos SET nombre = ?, concepto = ?, cantidad = ?, descripcion = ? WHERE id = ?')
-    .run(datos.nombre, datos.concepto, datos.cantidad, datos.descripcion, id);
-  return buscarPorId(id);
+  return Equipo.findByIdAndUpdate(id, datos, { new: true, runValidators: true });
 }
 
-// Los préstamos ya concluidos se borran con el equipo (su clave foránea
-// impediría el borrado); los activos los bloquea antes el servicio.
-function eliminar(id) {
-  db.transaccion(() => {
-    db.prepare('DELETE FROM prestamos WHERE equipo_id = ?').run(id);
-    db.prepare('DELETE FROM equipos WHERE id = ?').run(id);
-  });
+// Los préstamos ya concluidos (y sus multas) se borran con el equipo; los
+// activos los bloquea antes el servicio.
+// ponytail: sin transacción (requiere replica set). Si falla a mitad quedan
+// préstamos huérfanos; usar session.withTransaction() al pasar a replica set.
+async function eliminar(id) {
+  const prestamos = await Prestamo.find({ suEquipo: id }).distinct('_id');
+  await Multa.deleteMany({ suPrestamo: { $in: prestamos } });
+  await Prestamo.deleteMany({ suEquipo: id });
+  await Equipo.findByIdAndDelete(id);
 }
 
 module.exports = { crear, listar, buscarPorId, actualizar, eliminar };

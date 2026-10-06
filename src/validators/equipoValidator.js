@@ -1,8 +1,10 @@
 const texto = (valor) => typeof valor === 'string' && valor.trim().length > 0;
+// Id de MongoDB: ObjectId de 24 caracteres hexadecimales.
+const idValido = (valor) => typeof valor === 'string' && /^[0-9a-f]{24}$/i.test(valor);
 
 function validarId(req, res, next) {
-  if (!/^\d{1,15}$/.test(req.params.id)) return res.status(400).json({ errores: ['id no es válido'] });
-  req.id = Number(req.params.id);
+  if (!idValido(req.params.id)) return res.status(400).json({ errores: ['id no es válido'] });
+  req.id = req.params.id;
   next();
 }
 
@@ -31,4 +33,4 @@ function validarEquipo(req, res, next) {
   next();
 }
 
-module.exports = { validarId, validarEquipo };
+module.exports = { idValido, validarId, validarEquipo };

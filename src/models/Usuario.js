@@ -1,46 +1,52 @@
-class Usuario {
-  constructor({ id, nombre, institucion, correo, contrasena, telefono }) {
-    this.id = id;
-    this.nombre = nombre;
-    this.institucion = institucion;
-    this.correo = correo;
-    this.contrasena = contrasena;
-    this.telefono = telefono;
-  }
+const { Schema, model } = require('mongoose');
 
-  // La contraseña (hash) nunca sale en una respuesta JSON.
-  toJSON() {
-    const { contrasena, ...publico } = this;
-    return publico;
+// Administrador y Profesor comparten la colección usuarios; "rol" indica el subtipo.
+const usuarioSchema = new Schema(
+  {
+    nombre: { type: String, required: true },
+    institucion: { type: String, required: true },
+    correo: { type: String, required: true, unique: true },
+    contrasena: { type: String, required: true },
+    telefono: { type: String, required: true },
+    // Id de la única sesión válida: iniciar sesión en otro dispositivo la reemplaza.
+    sesionActiva: { type: String, default: null },
+  },
+  {
+    discriminatorKey: 'rol',
+    // La contraseña (hash) y la sesión nunca salen en una respuesta JSON.
+    toJSON: {
+      virtuals: true,
+      versionKey: false,
+      transform: (documento, json) => {
+        delete json._id;
+        delete json.contrasena;
+        delete json.sesionActiva;
+      },
+    },
   }
-}
+);
 
-class Administrador extends Usuario {
-  constructor(datos) {
-    super(datos);
-    this.rol = 'administrador';
-    this.codigo = datos.codigo;
-    this.area = datos.area;
-    this.departamento = datos.departamento;
-  }
-}
+const Usuario = model('Usuario', usuarioSchema);
 
-class Profesor extends Usuario {
-  constructor(datos) {
-    super(datos);
-    this.rol = 'profesor';
-    this.sede = datos.sede;
-    this.jornada = datos.jornada;
-    this.materias = datos.materias || [];
-    this.susMultas = datos.susMultas || [];
-  }
+const Administrador = Usuario.discriminator('administrador', new Schema({
+  codigo: { type: String, required: true },
+  area: { type: String, required: true },
+  departamento: { type: String, required: true },
+}));
 
-  // Suma solo las multas sin pagar.
-  calcularMultasValor() {
-    return this.susMultas
-      .filter((multa) => multa.estado === 'no pago')
-      .reduce((total, multa) => total + multa.valorMulta(), 0);
-  }
-}
+const profesorSchema = new Schema({
+  sede: { type: String, required: true },
+  jornada: { type: String, required: true },
+  materias: { type: [String], default: [] },
+});
+
+// Suma solo las multas sin pagar.
+profesorSchema.methods.calcularMultasValor = function (susMultas) {
+  return susMultas
+    .filter((multa) => multa.estado === 'no pago')
+    .reduce((total, multa) => total + multa.valorMulta(), 0);
+};
+
+const Profesor = Usuario.discriminator('profesor', profesorSchema);
 
 module.exports = { Usuario, Administrador, Profesor };

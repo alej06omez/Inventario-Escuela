@@ -37,9 +37,9 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          equipoId: Number(parametros.get('equipoId')),
+          equipoId: parametros.get('equipoId'),
           diasPrestamo: Number(parametros.get('diasPrestamo')),
-          profesorId: Number(form.profesorId.value),
+          profesorId: form.profesorId.value,
         }),
       });
       if (respuesta.ok) return (location.href = '/panel?aviso=prestado');

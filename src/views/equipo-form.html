@@ -22,7 +22,7 @@
     // Misma vista para crear (/equipos/registro) y actualizar (/equipos/:id/editar).
     const form = document.getElementById('equipo');
     const resultado = document.getElementById('resultado');
-    const id = location.pathname.match(/^\/equipos\/(\d+)\/editar$/)?.[1];
+    const id = location.pathname.match(/^\/equipos\/([0-9a-f]{24})\/editar$/)?.[1];
 
     if (id) {
       document.getElementById('titulo').textContent = 'Actualizar equipo';

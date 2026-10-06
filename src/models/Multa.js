@@ -1,20 +1,20 @@
+const { Schema, model } = require('mongoose');
+
 const VALOR_POR_DIA = 1000;
 
-class Multa {
-  constructor({ id, fecha, estado = 'no pago', suPrestamo }) {
-    this.id = id;
-    this.fecha = fecha;
-    this.estado = estado;
-    this.suPrestamo = suPrestamo;
-  }
+const multaSchema = new Schema({
+  fecha: { type: String, required: true },
+  estado: { type: String, enum: ['pagado', 'no pago'], default: 'no pago' },
+  suPrestamo: { type: Schema.Types.ObjectId, ref: 'Prestamo', required: true },
+});
 
-  diasRetraso() {
-    return this.suPrestamo.diasRetraso;
-  }
+// Requiere suPrestamo poblado (populate) para leer sus días de retraso.
+multaSchema.methods.diasRetraso = function () {
+  return this.suPrestamo.diasRetraso;
+};
 
-  valorMulta() {
-    return this.diasRetraso() * VALOR_POR_DIA;
-  }
-}
+multaSchema.methods.valorMulta = function () {
+  return this.diasRetraso() * VALOR_POR_DIA;
+};
 
-module.exports = Multa;
+module.exports = model('Multa', multaSchema);

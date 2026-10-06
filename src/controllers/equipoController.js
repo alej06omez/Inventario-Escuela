@@ -8,29 +8,29 @@ function formularioRegistro(req, res) {
 }
 
 // Solo entrega el formulario de edición si el equipo existe (404 si no).
-function formularioEditar(req, res) {
-  equipoService.equipoPorId(req.id);
+async function formularioEditar(req, res) {
+  await equipoService.equipoPorId(req.id);
   res.sendFile(FORMULARIO);
 }
 
-function registrar(req, res) {
-  res.status(201).json(equipoService.registrarEquipo(req.datos, req.usuario));
+async function registrar(req, res) {
+  res.status(201).json(await equipoService.registrarEquipo(req.datos, req.usuario));
 }
 
-function listar(req, res) {
-  res.json(equipoService.listarEquipos());
+async function listar(req, res) {
+  res.json(await equipoService.listarEquipos());
 }
 
-function equipoPorId(req, res) {
-  res.json(equipoService.equipoPorId(req.id));
+async function equipoPorId(req, res) {
+  res.json(await equipoService.equipoPorId(req.id));
 }
 
-function actualizar(req, res) {
-  res.json(equipoService.actualizarEquipo(req.id, req.datos, req.usuario));
+async function actualizar(req, res) {
+  res.json(await equipoService.actualizarEquipo(req.id, req.datos, req.usuario));
 }
 
-function eliminar(req, res) {
-  equipoService.eliminarEquipo(req.id, req.usuario);
+async function eliminar(req, res) {
+  await equipoService.eliminarEquipo(req.id, req.usuario);
   res.status(204).end();
 }
 

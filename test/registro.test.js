@@ -1,19 +1,31 @@
-process.env.DB_PATH = ':memory:';
 process.env.TOKEN_SECRET = 'secreto-de-prueba';
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const mongoose = require('mongoose');
 const app = require('../src/app');
+const { conectar } = require('../src/database');
+const Prestamo = require('../src/models/Prestamo');
+
+// Id con formato válido que no existe en la base.
+const NO_EXISTE = '0'.repeat(24);
 
 let servidor;
 let base;
 
 before(async () => {
+  await conectar(process.env.MONGODB_URI_TEST || 'mongodb://127.0.0.1:27017/inventario-test');
+  await mongoose.connection.dropDatabase();
+  // El índice único de correo debe existir antes de probar duplicados.
+  await mongoose.connection.syncIndexes();
   servidor = app.listen(0);
   await new Promise((listo) => servidor.once('listening', listo));
   base = `http://localhost:${servidor.address().port}`;
 });
-after(() => servidor.close());
+after(async () => {
+  servidor.close();
+  await mongoose.disconnect();
+});
 
 const post = async (ruta, cuerpo, token) => {
   const respuesta = await fetch(base + ruta, {
@@ -60,6 +72,17 @@ test('flujo de registro y login', async () => {
   const loginAdmin = await post('/usuarios/login', { correo: admin.correo, contrasena: admin.contrasena });
   assert.equal(loginAdmin.estado, 200);
   assert.equal((await post('/usuarios/registro', otroAdmin, loginAdmin.cuerpo.token)).estado, 201);
+
+  // Una sola sesión por usuario: el login en otro dispositivo invalida el token anterior.
+  const otroDispositivo = await post('/usuarios/login', { correo: admin.correo, contrasena: admin.contrasena });
+  const tercerAdmin = { ...admin, correo: 'admin3@colegio.edu' };
+  assert.equal((await post('/usuarios/registro', tercerAdmin, loginAdmin.cuerpo.token)).estado, 401);
+  assert.equal((await post('/usuarios/registro', tercerAdmin, otroDispositivo.cuerpo.token)).estado, 201);
+
+  // Cerrar sesión invalida el token.
+  const salir = await fetch(`${base}/usuarios/logout`, { method: 'POST', headers: { Authorization: `Bearer ${otroDispositivo.cuerpo.token}` } });
+  assert.equal(salir.status, 204);
+  assert.equal((await post('/usuarios/registro', tercerAdmin, otroDispositivo.cuerpo.token)).estado, 401);
 });
 
 test('panel por rol y gestión de equipos', async () => {
@@ -111,15 +134,15 @@ test('panel por rol y gestión de equipos', async () => {
 
   // Consulta por id.
   assert.equal((await pedir(`/equipos/${id}`, { token: sesionProfesor.token })).json().nombre, equipo.nombre);
-  assert.equal((await pedir('/equipos/999', { token: sesionAdmin.token })).estado, 404);
+  assert.equal((await pedir(`/equipos/${NO_EXISTE}`, { token: sesionAdmin.token })).estado, 404);
   assert.equal((await pedir('/equipos/abc', { token: sesionAdmin.token })).estado, 400);
-  assert.equal((await pedir('/equipos/999/editar', { cookie: sesionAdmin.cookie })).estado, 404);
+  assert.equal((await pedir(`/equipos/${NO_EXISTE}/editar`, { cookie: sesionAdmin.cookie })).estado, 404);
   assert.match((await pedir(`/equipos/${id}/editar`, { cookie: sesionAdmin.cookie })).texto, /<form/);
 
   // Actualización: solo administrador.
   const cambios = { ...equipo, cantidad: 3 };
   assert.equal((await pedir(`/equipos/${id}`, { metodo: 'PUT', cuerpo: cambios, token: sesionProfesor.token })).estado, 403);
-  assert.equal((await pedir('/equipos/999', { metodo: 'PUT', cuerpo: cambios, token: sesionAdmin.token })).estado, 404);
+  assert.equal((await pedir(`/equipos/${NO_EXISTE}`, { metodo: 'PUT', cuerpo: cambios, token: sesionAdmin.token })).estado, 404);
   assert.equal((await pedir(`/equipos/${id}`, { metodo: 'PUT', cuerpo: cambios, token: sesionAdmin.token })).json().cantidad, 3);
 
   const lista = (await pedir('/equipos', { token: sesionProfesor.token })).json();
@@ -147,7 +170,7 @@ test('préstamos y eliminación de equipo', async () => {
 
   // Añadir préstamo: valida datos, equipo y unidades disponibles.
   assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: 'x' })).estado, 400);
-  assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: 999, diasPrestamo: 2 })).estado, 404);
+  assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: NO_EXISTE, diasPrestamo: 2 })).estado, 404);
   assert.equal((await pedir('POST', '/prestamos', tokenProfesor, { equipoId: equipo.id })).estado, 400);
   const prestamo = await pedir('POST', '/prestamos', tokenProfesor, { equipoId: equipo.id, diasPrestamo: 2 });
   assert.equal(prestamo.estado, 201);
@@ -166,7 +189,7 @@ test('préstamos y eliminación de equipo', async () => {
   const profesores = (await pedir('GET', '/usuarios/profesores', tokenAdmin)).cuerpo;
   assert.equal((await pedir('GET', '/usuarios/profesores', tokenProfesor)).estado, 403);
   const profesorId = profesores.find((uno) => uno.nombre === profesor.nombre).id;
-  assert.equal((await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 2, profesorId: 999 })).estado, 404);
+  assert.equal((await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 2, profesorId: NO_EXISTE })).estado, 404);
   assert.equal((await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 2, profesorId })).estado, 409);
 
   // Listado: el profesor ve los suyos; el administrador, todos.
@@ -181,7 +204,7 @@ test('préstamos y eliminación de equipo', async () => {
   const tokenAjeno = (await post('/usuarios/registro', { ...profesor, correo: 'profe2@colegio.edu' })).estado === 201
     && await entrar({ ...profesor, correo: 'profe2@colegio.edu' });
   assert.equal((await pedir('POST', `/prestamos/${prestamo.cuerpo.id}/concluir`, tokenAjeno)).estado, 403);
-  assert.equal((await pedir('POST', '/prestamos/999/concluir', tokenAdmin)).estado, 404);
+  assert.equal((await pedir('POST', `/prestamos/${NO_EXISTE}/concluir`, tokenAdmin)).estado, 404);
   const concluido = await pedir('POST', `/prestamos/${prestamo.cuerpo.id}/concluir`, tokenOtro);
   assert.equal(concluido.estado, 200);
   assert.match(concluido.cuerpo.fechaFin, /^\d{4}-\d{2}-\d{2}$/);
@@ -196,7 +219,8 @@ test('préstamos y eliminación de equipo', async () => {
   const tardio = await pedir('POST', '/prestamos', tokenAdmin, { equipoId: equipo.id, diasPrestamo: 1, profesorId });
   assert.equal(tardio.estado, 201);
   assert.equal(tardio.cuerpo.suUsuario[0].id, profesorId);
-  require('../src/db').prepare("UPDATE prestamos SET fecha_esperada = date(fecha_esperada, '-4 days') WHERE id = ?").run(tardio.cuerpo.id);
+  const cuatroDiasAntes = Prestamo.fechaEsperadaDesde(tardio.cuerpo.fechaEsperada, -4);
+  await Prestamo.updateOne({ _id: tardio.cuerpo.id }, { fechaEsperada: cuatroDiasAntes });
   assert.equal((await pedir('POST', `/prestamos/${tardio.cuerpo.id}/concluir`, tokenProfesor)).cuerpo.diasRetraso, 3);
   assert.deepEqual((await pedir('GET', '/multas/valor', tokenProfesor)).cuerpo, { valor: 3000 });
   assert.deepEqual((await pedir('GET', '/multas/valor', tokenAjeno)).cuerpo, { valor: 0 });
